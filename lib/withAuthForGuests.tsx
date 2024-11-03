@@ -1,7 +1,7 @@
+// withAuthForGuests.tsx
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
-import { ComponentType } from 'react';
+import { useEffect, useState, ComponentType } from 'react';
+import { verifyToken } from '@/utils/authUtils';
 
 export function withAuthForGuests<T extends object>(Component: ComponentType<T>) {
     return function AuthenticatedComponent(props: T) {
@@ -9,25 +9,22 @@ export function withAuthForGuests<T extends object>(Component: ComponentType<T>)
         const [loading, setLoading] = useState(true);
 
         useEffect(() => {
-            if (typeof window !== 'undefined') {
-                const token = Cookies.get('token');
-        
-                if (!token) {
-                    console.log('No token found, redirecting to login.');
+            const checkToken = async () => {
+                const isValidToken = await verifyToken(process.env.NEXT_PUBLIC_API_URL || '');
+                if (!isValidToken) {
+                    console.log('No valid token, redirecting to login.');
                     router.push('/login');
                 } else {
-                    console.log('Token found, setting loading to false.');
+                    console.log('Valid token found, redirecting to home.');
                     router.push('/');
                     setLoading(false);
                 }
+            };
+
+            if (typeof window !== 'undefined') {
+                checkToken();
             }
         }, [router]);
-
-        if (loading) {
-            return <div>Loading...</div>;
-        }
-
-        
 
         return <Component {...props} />;
     };
